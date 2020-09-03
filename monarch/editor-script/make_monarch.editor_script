@@ -4,6 +4,12 @@ local collection_template
 local gui_script_template
 local gui_template
 
+local _empty_gui = [[script: "/test/abc.gui_script"
+adjust_reference: ADJUST_REFERENCE_PARENT
+]]
+local _empty_collection = [[name: "default"
+]]
+
 local function ends_with(str, ending)
     return ending == "" or str:sub(-#ending) == ending
 end
@@ -31,29 +37,40 @@ local function create_files(file_path)
     local dot_target_gui_path = "." .. target_gui_path
 
     -- Create the files if they don't exists
-    if not file_exists(dot_target_gui_path) then
-        local gui_content = gui_template(target_gui_script_path)
-        local gui = io.open(dot_target_gui_path, "w")
-        gui:write(gui_content)
-        gui:close()
-    else
-        -- Put the gui_script path into the gui file if it already exists
+    
+    -- Set up the gui
+    local gui_text
+    local exists = file_exists(dot_target_gui_path)
+    if exists then
         local gui_file = io.open(dot_target_gui_path, "rb")
-        local gui_text = gui_file:read("*a")
-        gui_file:close()
-
+        gui_text = gui_file:read("*a")
+    end
+    if gui_text == _empty_gui or not exists then
+        gui_text = gui_template(target_gui_script_path, basename)
+    elseif gui_text ~= _empty_gui or exists then
         gui_text = string.gsub(gui_text, 'script: "%.*"', [[script: "]] .. target_gui_script_path .. [["]])
-
-        gui_file = io.open(dot_target_gui_path, "w")
+    end
+    if gui_text then
+        local gui_file = io.open(dot_target_gui_path, "w")
         gui_file:write(gui_text)
-        gui_file:close()
     end
-    if not file_exists(dot_target_collection_path) then
-        local collection_content = collection_template(main .. basename .. ".gui", basename)
+    
+    -- Set up the collection
+    local collection_text
+    local exists = file_exists(dot_target_collection_path)
+    if exists then
+        local collection = io.open(dot_target_collection_path, "rb")
+        collection_text = collection:read("*a")
+    end
+    if collection_text == _empty_collection or not exists then
+        collection_text = collection_template(target_gui_path, basename)
+    end
+    if collection_text then
         local collection = io.open(dot_target_collection_path, "w")
-        collection:write(collection_content)
-        collection:close()
+        collection:write(collection_text)
     end
+
+    -- Set up the gui script
     if not file_exists(dot_target_gui_script_path) then
         local gui_script = io.open(dot_target_gui_script_path, "w")
         local gui_script_content = gui_script_template()
@@ -80,6 +97,7 @@ function M.get_commands()
         }
     }
 end
+
 
 gui_template = function(gui_script)
     return [[script: "]].. gui_script .. [["
