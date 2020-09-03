@@ -23,39 +23,42 @@ local function create_files(file_path)
     local path = editor.get(file_path, "path")
     local main, filename = get_filename(path)
     local basename = filename:match("(.+)%..+")
-    local target_collection_path = "." .. main .. basename .. ".collection"
-    local target_gui_script_path = "." .. main .. basename .. ".gui_script"
-    local target_gui_path = "." .. main .. basename .. ".gui"
+    local target_collection_path = main .. basename .. ".collection"
+    local target_gui_script_path = main .. basename .. ".gui_script"
+    local target_gui_path = main .. basename .. ".gui"
+    local dot_target_collection_path = "." .. target_collection_path
+    local dot_target_gui_script_path = "." .. target_gui_script_path
+    local dot_target_gui_path = "." .. target_gui_path
 
     -- Create the files if they don't exists
-    if not file_exists(target_collection_path) then
-        local collection_content = collection_template(path, basename)
-        local collection = io.open(target_collection_path, "w")
-        collection:write(collection_content)
-        collection:close()
-    end
-    if not file_exists(target_gui_script_path) then
-        local gui_script = io.open(target_gui_script_path, "w")
-        local gui_script_content = gui_script_template()
-        gui_script:write(gui_script_content)
-        gui_script:close()
-
-        -- Put the gui_script path into the gui file
-        local gui_file = io.open("." .. path, "rb")
+    if not file_exists(dot_target_gui_path) then
+        local gui_content = gui_template(target_gui_script_path)
+        local gui = io.open(dot_target_gui_path, "w")
+        gui:write(gui_content)
+        gui:close()
+    else
+        -- Put the gui_script path into the gui file if it already exists
+        local gui_file = io.open(dot_target_gui_path, "rb")
         local gui_text = gui_file:read("*a")
         gui_file:close()
 
-        gui_text = string.gsub(gui_text, 'script: "%.*"', [[script: "]] .. main .. basename .. ".gui_script" .. [["]])
+        gui_text = string.gsub(gui_text, 'script: "%.*"', [[script: "]] .. target_gui_script_path .. [["]])
 
-        gui_file = io.open("." .. path, "w")
+        gui_file = io.open(dot_target_gui_path, "w")
         gui_file:write(gui_text)
         gui_file:close()
     end
-    if not file_exists(target_gui_path) then
-        local gui_content = gui_template(path)
-        local gui = io.open(target_gui_path, "w")
-        gui:write(gui_content)
-        gui:close()
+    if not file_exists(dot_target_collection_path) then
+        local collection_content = collection_template(main .. basename .. ".gui", basename)
+        local collection = io.open(dot_target_collection_path, "w")
+        collection:write(collection_content)
+        collection:close()
+    end
+    if not file_exists(dot_target_gui_script_path) then
+        local gui_script = io.open(dot_target_gui_script_path, "w")
+        local gui_script_content = gui_script_template()
+        gui_script:write(gui_script_content)
+        gui_script:close()
     end
 end
 
